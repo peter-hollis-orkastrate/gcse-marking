@@ -1,0 +1,6 @@
+@GcseMarker.Api_HostAddress = http://localhost:5110
+
+GET {{GcseMarker.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
