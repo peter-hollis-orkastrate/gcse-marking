@@ -116,7 +116,9 @@ export class MarkingComponent implements OnInit {
 
   submitForMarking(): void {
     this.state = 'loading';
-    this.markingService.markEssay(this.selectedSkillId, this.question, this.pdfBase64)
+    const selectedSkill = this.skills.find(s => s.id === this.selectedSkillId);
+    const skillName = selectedSkill?.name || this.selectedSkillId;
+    this.markingService.markEssay(this.selectedSkillId, skillName, this.question, this.pdfBase64)
       .subscribe({
         next: (result) => {
           this.result = result;

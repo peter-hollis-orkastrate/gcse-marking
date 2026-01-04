@@ -1,6 +1,8 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { MarkingResult } from '../../../../core/models/marking-result.model';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-results-display',
@@ -46,6 +48,9 @@ export class ResultsDisplayComponent {
   @Input() result!: MarkingResult;
   @Output() onReset = new EventEmitter<void>();
 
+  private http = inject(HttpClient);
+  isDownloading = false;
+
   get renderedFeedback(): string {
     return this.renderMarkdown(this.result.raw);
   }
@@ -68,52 +73,36 @@ export class ResultsDisplayComponent {
   }
 
   async downloadPdf(): Promise<void> {
-    const { jsPDF } = await import('jspdf');
-    const html2canvas = (await import('html2canvas')).default;
+    if (this.isDownloading) return;
+    this.isDownloading = true;
 
-    const element = document.getElementById('feedback-content');
-    if (!element) return;
+    try {
+      const response = await this.http.post(
+        `${environment.apiUrl}/pdf/feedback`,
+        {
+          gradeBand: this.result.gradeBand,
+          question: this.result.question,
+          feedbackMarkdown: this.result.raw,
+          skillName: this.result.skillName,
+          timestamp: this.result.timestamp
+        },
+        { responseType: 'blob' }
+      ).toPromise();
 
-    // Use lower scale and JPEG for smaller file size
-    const canvas = await html2canvas(element, {
-      scale: 1.5,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    });
-
-    // JPEG with 85% quality is much smaller than PNG
-    const imgData = canvas.toDataURL('image/jpeg', 0.85);
-
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-    const imgX = (pdfWidth - imgWidth * ratio) / 2;
-    const scaledHeight = imgHeight * ratio;
-
-    // Handle multi-page PDFs
-    let heightLeft = scaledHeight;
-    let position = 0;
-
-    pdf.addImage(imgData, 'JPEG', imgX, position, imgWidth * ratio, scaledHeight);
-    heightLeft -= pdfHeight;
-
-    while (heightLeft > 0) {
-      position = heightLeft - scaledHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', imgX, position, imgWidth * ratio, scaledHeight);
-      heightLeft -= pdfHeight;
+      if (response) {
+        const blob = new Blob([response], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `feedback-${this.result.skillId}-grade-${this.result.gradeBand}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+    } finally {
+      this.isDownloading = false;
     }
-
-    pdf.save(`essay-feedback-${this.result.gradeBand}.pdf`);
   }
 
 }

@@ -23,6 +23,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Add Services
 builder.Services.AddScoped<ISkillsService, SkillsService>();
+builder.Services.AddScoped<IMarkdownParser, MarkdownParser>();
+builder.Services.AddScoped<IPdfService, PdfService>();
 
 // Add Claude HttpClient with 5 minute timeout
 builder.Services.AddHttpClient<IClaudeService, ClaudeService>(client =>

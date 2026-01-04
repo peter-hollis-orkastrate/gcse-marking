@@ -14,7 +14,7 @@ interface MarkResponse {
 export class MarkingService {
   constructor(private http: HttpClient) {}
 
-  markEssay(skillId: string, question: string, pdfBase64: string): Observable<MarkingResult> {
+  markEssay(skillId: string, skillName: string, question: string, pdfBase64: string): Observable<MarkingResult> {
     return this.http.post<MarkResponse>(
       `${environment.apiUrl}/mark`,
       { skillId, question, pdfBase64 }
@@ -23,7 +23,7 @@ export class MarkingService {
         if (!response.success || !response.feedback) {
           throw new Error(response.error || 'Failed to mark essay');
         }
-        return { ...response.feedback, question };
+        return { ...response.feedback, question, skillId, skillName };
       })
     );
   }

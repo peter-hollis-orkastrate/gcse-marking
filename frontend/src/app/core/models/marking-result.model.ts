@@ -3,4 +3,6 @@ export interface MarkingResult {
   gradeBand: string;
   timestamp: Date;
   question?: string;
+  skillId: string;
+  skillName: string;
 }
